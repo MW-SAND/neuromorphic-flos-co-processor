@@ -236,7 +236,7 @@ int main() {
     neorv32_uart0_printf("SILENT_MODE enabled (only showing per instruction totals)\n");
   #endif
 
-  neorv32_uart0_printf("\nperform: for (i=0;i<%d,i++) {%d instructions}\n", instLoop,instCalls);
+  neorv32_uart0_printf("\perform: for (i=0;i<%d,i++) {%d instructions}\n", instLoop,instCalls);
 
   #if rv32I_arith == 1
     instToTest += 5;

@@ -11,18 +11,18 @@ ENTITY neorv32_dmem_tc IS
   GENERIC (
     DMEM_SIZE : NATURAL; -- memory size in bytes, has to be a power of 2, min 4
     ACC_DATA_WIDTH : INTEGER := 16;
-    NPE_COUNT : INTEGER := 1
+    PE_COUNT : INTEGER := 1
   );
   PORT (
     clk_i : IN STD_ULOGIC;
     rstn_i : IN STD_ULOGIC; 
     bus_req_i : IN bus_req_t; 
     bus_rsp_o : OUT bus_rsp_t; 
-    acc_data_in : IN STD_LOGIC_VECTOR(NPE_COUNT * ACC_DATA_WIDTH - 1 DOWNTO 0);
+    acc_data_in : IN STD_LOGIC_VECTOR(PE_COUNT * ACC_DATA_WIDTH - 1 DOWNTO 0);
     acc_ena : IN STD_LOGIC;
     acc_rw : IN STD_LOGIC;
     acc_addr : IN STD_LOGIC_VECTOR(24 - 1 DOWNTO 0);
-    acc_data_out : OUT STD_LOGIC_VECTOR(NPE_COUNT * ACC_DATA_WIDTH - 1 DOWNTO 0)
+    acc_data_out : OUT STD_LOGIC_VECTOR(PE_COUNT * ACC_DATA_WIDTH - 1 DOWNTO 0)
   );
 END neorv32_dmem_tc;
 
@@ -55,7 +55,7 @@ ARCHITECTURE neorv32_dmem_rtl OF neorv32_dmem_tc IS
     END IF;
   END FUNCTION;
 
-  CONSTANT num_rows : INTEGER := rows_lower_bound(NPE_COUNT);
+  CONSTANT num_rows : INTEGER := rows_lower_bound(PE_COUNT);
 
   CONSTANT sram_basename : STRING := "../rtl/core/hex_files/neorv32_data32_image";
 
@@ -182,14 +182,14 @@ BEGIN
   bus_rsp_o.err <= '0'; -- no access error possible
 
   -- Select data out for the accelerators 
-  acc_data_out_mul_npe : IF NPE_COUNT >= 2 GENERATE
+  acc_data_out_mul_pe : IF PE_COUNT >= 2 GENERATE
     gen_acc_data_out_sel : FOR i IN 0 TO num_rows - 1 GENERATE
       acc_data_out((i + 1) * ACC_DATA_WIDTH - 1 DOWNTO i * ACC_DATA_WIDTH) <= STD_LOGIC_VECTOR(rdata((i + 1) * 16 - 1 DOWNTO i * 16)) WHEN acc_rden = '1' ELSE
       (OTHERS => '0');
     END GENERATE;
   END GENERATE;
 
-  acc_data_out_sin_npe : IF NPE_COUNT < 2 GENERATE
+  acc_data_out_sin_pe : IF PE_COUNT < 2 GENERATE
     acc_data_out(ACC_DATA_WIDTH - 1 DOWNTO 0) <= STD_LOGIC_VECTOR(rdata(ACC_DATA_WIDTH * 2 - 1 DOWNTO ACC_DATA_WIDTH)) WHEN acc_row_ena(1) = '1' ELSE
     STD_LOGIC_VECTOR(rdata(ACC_DATA_WIDTH - 1 DOWNTO 0));
   END GENERATE;
@@ -256,7 +256,7 @@ BEGIN
   -- Enable sram rows for invidiual processing elements
   p_acc_row_ena : PROCESS (acc_ena, acc_addr)
   BEGIN
-    IF (NPE_COUNT >= 2) THEN
+    IF (PE_COUNT >= 2) THEN
       acc_row_ena_next <= (OTHERS => acc_ena);
     ELSE
       acc_row_ena_next(0) <= acc_ena AND NOT(acc_addr(1));
@@ -293,7 +293,7 @@ BEGIN
         ELSIF (i = to_integer(unsigned(riscv_addr_incr(log2(num_rows) - 1 DOWNTO 0)))) AND acc_ena = '0' THEN
           din((i + 1) * ACC_DATA_WIDTH - 1 DOWNTO i * ACC_DATA_WIDTH) <= STD_LOGIC_VECTOR(bus_req_i_del.data(ACC_DATA_WIDTH * 2 - 1 DOWNTO ACC_DATA_WIDTH));
         ELSE
-          IF NPE_COUNT >= 2 THEN
+          IF PE_COUNT >= 2 THEN
             din((i + 1) * ACC_DATA_WIDTH - 1 DOWNTO i * ACC_DATA_WIDTH) <= acc_data_in((i + 1) * ACC_DATA_WIDTH - 1 DOWNTO i * ACC_DATA_WIDTH);
           ELSE
             din((i + 1) * ACC_DATA_WIDTH - 1 DOWNTO i * ACC_DATA_WIDTH) <= acc_data_in(ACC_DATA_WIDTH - 1 DOWNTO 0);

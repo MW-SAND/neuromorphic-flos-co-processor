@@ -3,7 +3,7 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 USE work.MATH_UTILS.ALL;
 
-ENTITY npe IS
+ENTITY pe IS
     GENERIC (
         NUM_REGS_16b : INTEGER := 8;
         NUM_REGS_4b : INTEGER := 8;
@@ -20,11 +20,10 @@ ENTITY npe IS
         rd_addr : IN STD_LOGIC_VECTOR(log2(NUM_REGS_16b + NUM_REGS_4b) - 1 DOWNTO 0);
         arith_sel : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
         rd_in_sel : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
-        ba_add_ena : IN STD_LOGIC;
         data_out : OUT STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0)
     );
-END ENTITY npe;
-ARCHITECTURE rtl OF npe IS
+END ENTITY pe;
+ARCHITECTURE rtl OF pe IS
 
     SIGNAL rs1, rs2, rd, arith_out : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
     SIGNAL rs1_4b, rs2_4b, rs1_16b, rs2_16b : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
@@ -83,7 +82,6 @@ BEGIN
             waddr => rd_addr(log2(NUM_REGS_16b + NUM_REGS_4b) - 2 DOWNTO 0),
             data_in => rd,
             clk_i => clk_i,
-            ba_add_ena => ba_add_ena,
             data_out_A => rs1_16b,
             data_out_B => rs2_16b
         );
@@ -102,7 +100,6 @@ BEGIN
             waddr => rd_addr(log2(NUM_REGS_16b + NUM_REGS_4b) - 2 DOWNTO 0),
             data_in => rd,
             clk_i => clk_i,
-            ba_add_ena => ba_add_ena,
             data_out_A => rs1_4b,
             data_out_B => rs2_4b
         );

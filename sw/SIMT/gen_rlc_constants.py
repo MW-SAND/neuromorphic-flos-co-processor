@@ -171,11 +171,11 @@ def calculate_indexes(pe_subrows: List[List[List[int]]], num_pe: int) -> List[in
 
 
 def postprocess_index_array(index_array: List[int], num_pe: int) -> List[int]:
-    """Postprocess the index array by adding n - (index_position // NPE_COUNT) to each index.
+    """Postprocess the index array by adding n - (index_position // PE_COUNT) to each index.
 
     Args:
         index_array: The original index array
-        num_pe: Number of processing elements (NPE_COUNT)
+        num_pe: Number of processing elements (PE_COUNT)
 
     Returns:
         List[int]: The postprocessed index array

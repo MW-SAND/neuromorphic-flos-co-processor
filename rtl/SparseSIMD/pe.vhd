@@ -3,7 +3,7 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 USE work.MATH_UTILS.ALL;
 
-ENTITY npe IS
+ENTITY pe IS
     GENERIC (
         NUM_REGS_16b : INTEGER := 8;
         NUM_REGS_4b : INTEGER := 8;
@@ -13,6 +13,7 @@ ENTITY npe IS
         rstn_i : IN STD_LOGIC;
         clk_i : IN STD_LOGIC;
         ce : IN STD_LOGIC;
+        pe_ce_ena_in : IN STD_LOGIC;
         sram_in : IN STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
         riscv_in : IN STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
         rs1_addr : IN STD_LOGIC_VECTOR(log2(NUM_REGS_16b + NUM_REGS_4b) - 1 DOWNTO 0);
@@ -20,10 +21,11 @@ ENTITY npe IS
         rd_addr : IN STD_LOGIC_VECTOR(log2(NUM_REGS_16b + NUM_REGS_4b) - 1 DOWNTO 0);
         arith_sel : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
         rd_in_sel : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
-        data_out : OUT STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0)
+        data_out : OUT STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
+        pe_ce_out : OUT STD_LOGIC
     );
-END ENTITY npe;
-ARCHITECTURE rtl OF npe IS
+END ENTITY pe;
+ARCHITECTURE rtl OF pe IS
 
     SIGNAL rs1, rs2, rd, arith_out : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
     SIGNAL rs1_4b, rs2_4b, rs1_16b, rs2_16b : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
@@ -31,8 +33,14 @@ ARCHITECTURE rtl OF npe IS
     SIGNAL max_out, mult_out, add_out, shift_out : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
 
     SIGNAL wena_16b, wena_4b : STD_LOGIC;
-BEGIN
 
+    SIGNAL reg_16b_ce, reg_4b_ce : STD_LOGIC;
+
+    SIGNAL pe_ce : STD_LOGIC;
+BEGIN
+    -- Determine PE clock enable signal
+    pe_ce_out <= NOT (pe_ce_ena_in AND NOT reg_16b_ce);
+    pe_ce <= ce AND NOT (pe_ce_ena_in AND NOT reg_16b_ce);
     data_out <= rs2;
 
     -- Select register file input
@@ -65,8 +73,8 @@ BEGIN
         rs2_4b;
 
     -- Determine write enable signals for both register files
-    wena_16b <= ce AND NOT(rd_addr(log2(NUM_REGS_16b + NUM_REGS_4b) - 1));
-    wena_4b <= ce AND rd_addr(log2(NUM_REGS_16b + NUM_REGS_4b) - 1);
+    wena_16b <= pe_ce AND NOT(rd_addr(log2(NUM_REGS_16b + NUM_REGS_4b) - 1));
+    wena_4b <= pe_ce AND rd_addr(log2(NUM_REGS_16b + NUM_REGS_4b) - 1);
 
     rf_16b : ENTITY work.register_file
         GENERIC MAP(
@@ -83,7 +91,9 @@ BEGIN
             data_in => rd,
             clk_i => clk_i,
             data_out_A => rs1_16b,
-            data_out_B => rs2_16b
+            data_out_B => rs2_16b,
+            reg_ce => reg_16b_ce,
+            rstn_i => rstn_i
         );
 
     rf_4b : ENTITY work.register_file
@@ -101,7 +111,9 @@ BEGIN
             data_in => rd,
             clk_i => clk_i,
             data_out_A => rs1_4b,
-            data_out_B => rs2_4b
+            data_out_B => rs2_4b,
+            reg_ce => reg_4b_ce,
+            rstn_i => rstn_i
         );
 
     mul0 : ENTITY work.multiplier

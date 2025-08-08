@@ -7,7 +7,7 @@ ENTITY instr_decoder IS
         NUM_REGS_16b : INTEGER := 8;
         NUM_REGS_4b : INTEGER := 8;
         DATA_WIDTH : INTEGER := 16;
-        NPE_COUNT : INTEGER := 4;
+        PE_COUNT : INTEGER := 4;
         BASE_ADDR_WIDTH : INTEGER := 20;
         BASE_ADDR_COUNT : INTEGER := 2
     );

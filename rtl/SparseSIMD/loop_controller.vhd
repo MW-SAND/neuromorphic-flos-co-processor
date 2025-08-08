@@ -6,7 +6,7 @@ USE work.neorv32_package.ALL;
 
 USE work.math_utils.ALL;
 
-ENTITY loop_buffer IS
+ENTITY loop_controller IS
     GENERIC (
         NUM_REGS_16b : INTEGER := 8;
         NUM_REGS_4b : INTEGER := 8;
@@ -34,7 +34,7 @@ ENTITY loop_buffer IS
         riscv_ena : OUT STD_LOGIC
     );
 END ENTITY;
-ARCHITECTURE rtl OF loop_buffer IS
+ARCHITECTURE rtl OF loop_controller IS
 
     TYPE rf_task_buffer_t IS ARRAY (0 TO TASK_BUFFER_SIZE - 1) OF STD_LOGIC_VECTOR(TASK_SIZE - 1 DOWNTO 0);
     SIGNAL rf_task_buffer : rf_task_buffer_t;
@@ -244,7 +244,7 @@ BEGIN
         END IF;
     END PROCESS;
 
-    -- Write value from RISCV to NPEs
+    -- Write value from RISCV to PEs
     p_riscv : PROCESS (cur_task, state)
     BEGIN
         IF (state = idle AND cur_task(1 DOWNTO 0) = "10") THEN

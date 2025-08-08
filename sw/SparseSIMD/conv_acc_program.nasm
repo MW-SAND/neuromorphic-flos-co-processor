@@ -12,7 +12,7 @@ BAIT0L1A1 0
 BAIT0L1A2 16
 BAIT0L1A3 0
 
-# channel address increment = 8 NPE * 4 WEIGHTS * 2 ADDR_BYTE_OFFSET 
+# channel address increment = 8 PE * 4 WEIGHTS * 2 ADDR_BYTE_OFFSET 
 BAIT0L2A0 64
 BAIT0L2A1 16
 BAIT0L2A2 0
@@ -23,9 +23,9 @@ BAIT0L3A1 0
 BAIT0L3A2 0
 BAIT0L3A3 0
 
-# partial sum address increment = 8 NPE * 2 ADDR_BYTE_OFFSET = 16
+# partial sum address increment = 8 PE * 2 ADDR_BYTE_OFFSET = 16
 BAIT1L0A0 16
-# bias  address increment = 8 NPE * 2 ADDR_BYTE_OFFSET = 16
+# bias  address increment = 8 PE * 2 ADDR_BYTE_OFFSET = 16
 BAIT1L0A1 16
 BAIT1L0A2 0
 BAIT1L0A3 0
@@ -55,7 +55,7 @@ LCL0T1 15
 LCL1T0 2
 LCL1T1 255
 
-# channel dimension / (NPE * 4)
+# channel dimension / (PE * 4)
 LCL2T0 3
 LCL2T1 0
 

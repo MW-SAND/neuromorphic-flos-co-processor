@@ -12,24 +12,24 @@ ENTITY hw_acc_top IS
         NUM_REGS_4b : INTEGER := 8;
         DATA_WIDTH : INTEGER := 16;
         BASE_ADDR_WIDTH : INTEGER := 20;
-        NPE_COUNT : INTEGER := 1
+        PE_COUNT : INTEGER := 1
     );
     PORT (
         clk_i : IN STD_LOGIC;
         rstn_i : IN STD_LOGIC;
         bus_req_i : IN bus_req_t;
         bus_rsp_o : OUT bus_rsp_t;
-        sram_data_in : IN STD_LOGIC_VECTOR(NPE_COUNT * DATA_WIDTH - 1 DOWNTO 0);
+        sram_data_in : IN STD_LOGIC_VECTOR(PE_COUNT * DATA_WIDTH - 1 DOWNTO 0);
         sram_ena : OUT STD_LOGIC;
         sram_rw : OUT STD_LOGIC;
         sram_addr : OUT STD_LOGIC_VECTOR(24 - 1 DOWNTO 0);
-        sram_data_out : OUT STD_LOGIC_VECTOR(NPE_COUNT * DATA_WIDTH - 1 DOWNTO 0);
+        sram_data_out : OUT STD_LOGIC_VECTOR(PE_COUNT * DATA_WIDTH - 1 DOWNTO 0);
         irq_o : OUT STD_LOGIC;
-        npe_ce : OUT STD_LOGIC_VECTOR(NPE_COUNT - 1 DOWNTO 0)
+        pe_ce : OUT STD_LOGIC_VECTOR(PE_COUNT - 1 DOWNTO 0)
     );
 END ENTITY;
 ARCHITECTURE structural OF hw_acc_top IS
-    COMPONENT loop_buffer IS
+    COMPONENT loop_controller IS
         GENERIC (
             NUM_REGS_16b : INTEGER := 8;
             NUM_REGS_4b : INTEGER := 8;
@@ -55,7 +55,7 @@ ARCHITECTURE structural OF hw_acc_top IS
         );
     END COMPONENT;
 
-    COMPONENT npe IS
+    COMPONENT pe IS
         GENERIC (
             NUM_REGS_16b : INTEGER := 8;
             NUM_REGS_4b : INTEGER := 8;
@@ -65,7 +65,7 @@ ARCHITECTURE structural OF hw_acc_top IS
             rstn_i : IN STD_LOGIC;
             clk_i : IN STD_LOGIC;
             ce : IN STD_LOGIC;
-            npe_ce_ena_in : IN STD_LOGIC;
+            pe_ce_ena_in : IN STD_LOGIC;
             sram_in : IN STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
             riscv_in : IN STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
             rs1_addr : IN STD_LOGIC_VECTOR(log2(NUM_REGS_16b + NUM_REGS_4b) - 1 DOWNTO 0);
@@ -74,7 +74,7 @@ ARCHITECTURE structural OF hw_acc_top IS
             arith_sel : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
             rd_in_sel : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
             data_out : OUT STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
-            npe_ce_out : OUT STD_LOGIC
+            pe_ce_out : OUT STD_LOGIC
         );
     END COMPONENT;
     COMPONENT instr_decoder IS
@@ -82,7 +82,7 @@ ARCHITECTURE structural OF hw_acc_top IS
             NUM_REGS_16b : INTEGER := 8;
             NUM_REGS_4b : INTEGER := 8;
             DATA_WIDTH : INTEGER := 16;
-            NPE_COUNT : INTEGER := 4;
+            PE_COUNT : INTEGER := 4;
             BASE_ADDR_WIDTH : INTEGER := 20
         );
         PORT (
@@ -104,14 +104,14 @@ ARCHITECTURE structural OF hw_acc_top IS
             arith_sel : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
             rd_in_sel : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
             ce : OUT STD_LOGIC;
-            npe_ce_ena_out : OUT STD_LOGIC;
+            pe_ce_ena_out : OUT STD_LOGIC;
             sram_addr : OUT STD_LOGIC_VECTOR(23 DOWNTO 0);
             sram_ena : OUT STD_LOGIC;
             sram_rw : OUT STD_LOGIC;
             stall_rq : OUT STD_LOGIC
         );
     END COMPONENT;
-    SIGNAL npe_ce_ena : STD_LOGIC;
+    SIGNAL pe_ce_ena : STD_LOGIC;
 
     SIGNAL stall_rq : STD_LOGIC;
     SIGNAL decode_ena : STD_LOGIC;
@@ -120,7 +120,7 @@ ARCHITECTURE structural OF hw_acc_top IS
     SIGNAL base_addr_1 : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH - 1 DOWNTO 0);
     SIGNAL base_addr_2 : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH - 1 DOWNTO 0);
     SIGNAL base_addr_3 : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH - 1 DOWNTO 0);
-    SIGNAL riscv_data, riscv_data_npe : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
+    SIGNAL riscv_data, riscv_data_pe : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
     SIGNAL riscv_rd : STD_LOGIC_VECTOR(log2(NUM_REGS_16b + NUM_REGS_4b) - 1 DOWNTO 0);
     SIGNAL riscv_ena : STD_LOGIC;
 
@@ -131,7 +131,7 @@ ARCHITECTURE structural OF hw_acc_top IS
 
 BEGIN
     -- Instantiate Loop Controller
-    loop_buffer_0 : loop_buffer
+    loop_controller_0 : loop_controller
     GENERIC MAP
     (
         NUM_REGS_16b => NUM_REGS_16b,
@@ -165,7 +165,7 @@ BEGIN
         NUM_REGS_16b => NUM_REGS_16b,
         NUM_REGS_4b => NUM_REGS_4b,
         DATA_WIDTH => DATA_WIDTH,
-        NPE_COUNT => NPE_COUNT,
+        PE_COUNT => PE_COUNT,
         BASE_ADDR_WIDTH => BASE_ADDR_WIDTH
     )
     PORT MAP
@@ -181,7 +181,7 @@ BEGIN
         riscv_data_in => riscv_data,
         riscv_rd => riscv_rd,
         riscv_ena => riscv_ena,
-        riscv_data_out => riscv_data_npe,
+        riscv_data_out => riscv_data_pe,
         sram_addr => sram_addr,
         sram_ena => sram_ena,
         sram_rw => sram_rw,
@@ -192,12 +192,12 @@ BEGIN
         rd_addr => rd_addr,
         arith_sel => arith_sel,
         ce => ce,
-        npe_ce_ena_out => npe_ce_ena
+        pe_ce_ena_out => pe_ce_ena
     );
 
     -- Instantiate array of PE 
-    gen_npe : FOR i IN 0 TO NPE_COUNT - 1 GENERATE
-        npe_0 : npe
+    gen_pe : FOR i IN 0 TO PE_COUNT - 1 GENERATE
+        pe_0 : pe
         GENERIC MAP
         (
             NUM_REGS_16b => NUM_REGS_16b,
@@ -209,15 +209,15 @@ BEGIN
             clk_i => clk_i,
             rstn_i => rstn_i,
             ce => ce,
-            npe_ce_ena_in => npe_ce_ena,
+            pe_ce_ena_in => pe_ce_ena,
             sram_in => sram_data_in((i + 1) * DATA_WIDTH - 1 DOWNTO i * DATA_WIDTH),
-            riscv_in => riscv_data_npe,
+            riscv_in => riscv_data_pe,
             rs1_addr => rs1_addr,
             rs2_addr => rs2_addr,
             rd_addr => rd_addr,
             arith_sel => arith_sel,
             rd_in_sel => rd_in_sel,
-            npe_ce_out => npe_ce(i),
+            pe_ce_out => pe_ce(i),
             data_out => sram_data_out((i + 1) * DATA_WIDTH - 1 DOWNTO i * DATA_WIDTH)
         );
     END GENERATE;

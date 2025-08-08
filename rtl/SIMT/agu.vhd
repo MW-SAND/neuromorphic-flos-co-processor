@@ -8,7 +8,7 @@ ENTITY agu IS
         DATA_WIDTH : INTEGER := 16;
         BASE_ADDR_WIDTH : INTEGER := 20;
         BASE_ADDR_COUNT : INTEGER := 2;
-        NPE_COUNT : INTEGER := 8
+        PE_COUNT : INTEGER := 8
     );
     PORT (
         clk : IN STD_LOGIC;
@@ -37,7 +37,7 @@ ARCHITECTURE rtl OF agu IS
     SIGNAL ba_var : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH * BASE_ADDR_COUNT - 1 DOWNTO 0);
     SIGNAL ba_var_next : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH * BASE_ADDR_COUNT - 1 DOWNTO 0);
 
-    SIGNAL rel_addr_ext : STD_LOGIC_VECTOR(log2(NPE_COUNT) + 1 + 5 - 1 DOWNTO 0);
+    SIGNAL rel_addr_ext : STD_LOGIC_VECTOR(log2(PE_COUNT) + 1 + 5 - 1 DOWNTO 0);
 
     SIGNAL pe_ena : STD_LOGIC;
     SIGNAL pe_ena_next : STD_LOGIC;
@@ -58,13 +58,13 @@ BEGIN
     pe_ena_out <= pe_ena;
 
     -- Extend the relative address
-    rel_addr_ext(log2(NPE_COUNT) + 1 + 5 - 1 DOWNTO 5) <= (OTHERS => '0');
+    rel_addr_ext(log2(PE_COUNT) + 1 + 5 - 1 DOWNTO 5) <= (OTHERS => '0');
     rel_addr_ext(5 - 1 DOWNTO 0) <= rel_addr_reg;
 
     -- Determine memory address for SRAM
     ba_out <= ba_var(BASE_ADDR_WIDTH * (to_integer(unsigned(ba_out_idx)) + 1) - 1 DOWNTO BASE_ADDR_WIDTH * to_integer(unsigned(ba_out_idx))) WHEN ba_out_ena = '1' ELSE
         (OTHERS => '0');
-    addr_out <= SRAM_EXT & STD_LOGIC_VECTOR(unsigned(ba_out) + shift_left(unsigned(rel_addr_ext), log2(NPE_COUNT) + 1));
+    addr_out <= SRAM_EXT & STD_LOGIC_VECTOR(unsigned(ba_out) + shift_left(unsigned(rel_addr_ext), log2(PE_COUNT) + 1));
 
     -- Determine next value of the base address
     p_ba_var : PROCESS (ba_var, ba_ret_ena, ba_ret, ba_incr_ena, ba_incr, ba_add_ena, ba_add_idx, ba_add_val, pe_ena)
@@ -82,14 +82,14 @@ BEGIN
             FOR i IN 0 TO BASE_ADDR_COUNT - 1 LOOP
                 ba_incr_ext((i + 1) * BASE_ADDR_WIDTH - 1 DOWNTO i * BASE_ADDR_WIDTH + 16) := replicate(ba_incr((i + 1) * 16 - 1), BASE_ADDR_WIDTH - 16);
                 ba_incr_ext(i * BASE_ADDR_WIDTH + 16 - 1 DOWNTO i * BASE_ADDR_WIDTH) := ba_incr((i + 1) * 16 - 1 DOWNTO i * 16);
-                ba_var_next((i + 1) * BASE_ADDR_WIDTH - 1 DOWNTO i * BASE_ADDR_WIDTH) <= STD_LOGIC_VECTOR(unsigned(ba_var((i + 1) * BASE_ADDR_WIDTH - 1 DOWNTO i * BASE_ADDR_WIDTH)) + shift_left(unsigned(ba_incr_ext((i + 1) * BASE_ADDR_WIDTH - 1 DOWNTO i * BASE_ADDR_WIDTH)), log2(NPE_COUNT) + 1));
+                ba_var_next((i + 1) * BASE_ADDR_WIDTH - 1 DOWNTO i * BASE_ADDR_WIDTH) <= STD_LOGIC_VECTOR(unsigned(ba_var((i + 1) * BASE_ADDR_WIDTH - 1 DOWNTO i * BASE_ADDR_WIDTH)) + shift_left(unsigned(ba_incr_ext((i + 1) * BASE_ADDR_WIDTH - 1 DOWNTO i * BASE_ADDR_WIDTH)), log2(PE_COUNT) + 1));
             END LOOP;
 
         -- Add register value to base address
         ELSIF ba_add_ena = '1' AND pe_ena = '1' THEN
             ba_add_val_ext(BASE_ADDR_WIDTH - 1 DOWNTO DATA_WIDTH) := (OTHERS => '0');
             ba_add_val_ext(DATA_WIDTH - 1 DOWNTO 0) := ba_add_val;
-            ba_var_next((to_integer(unsigned(ba_add_idx)) + 1) * BASE_ADDR_WIDTH - 1 DOWNTO to_integer(unsigned(ba_add_idx)) * BASE_ADDR_WIDTH) <= STD_LOGIC_VECTOR(unsigned(ba_var((to_integer(unsigned(ba_add_idx)) + 1) * BASE_ADDR_WIDTH - 1 DOWNTO to_integer(unsigned(ba_add_idx)) * BASE_ADDR_WIDTH)) + shift_left(unsigned(ba_add_val_ext), log2(NPE_COUNT) + 1));
+            ba_var_next((to_integer(unsigned(ba_add_idx)) + 1) * BASE_ADDR_WIDTH - 1 DOWNTO to_integer(unsigned(ba_add_idx)) * BASE_ADDR_WIDTH) <= STD_LOGIC_VECTOR(unsigned(ba_var((to_integer(unsigned(ba_add_idx)) + 1) * BASE_ADDR_WIDTH - 1 DOWNTO to_integer(unsigned(ba_add_idx)) * BASE_ADDR_WIDTH)) + shift_left(unsigned(ba_add_val_ext), log2(PE_COUNT) + 1));
         END IF;
     END PROCESS;
 

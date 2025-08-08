@@ -7,7 +7,7 @@ ENTITY instr_decoder IS
         NUM_REGS_16b : INTEGER := 8;
         NUM_REGS_4b : INTEGER := 8;
         DATA_WIDTH : INTEGER := 16;
-        NPE_COUNT : INTEGER := 4;
+        PE_COUNT : INTEGER := 4;
         BASE_ADDR_WIDTH : INTEGER := 20
     );
     PORT (
@@ -39,7 +39,7 @@ ARCHITECTURE rtl OF instr_decoder IS
     SIGNAL state : state_t;
     SIGNAL state_next : state_t;
 
-    SIGNAL rel_sram_addr : STD_LOGIC_VECTOR(log2(NPE_COUNT) + 1 + 5 - 1 DOWNTO 0);
+    SIGNAL rel_sram_addr : STD_LOGIC_VECTOR(log2(PE_COUNT) + 1 + 5 - 1 DOWNTO 0);
     SIGNAL sram_addr_base : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH - 1 DOWNTO 0);
 
     SIGNAL sram_addr_comb : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH - 1 DOWNTO 0);
@@ -60,7 +60,7 @@ BEGIN
     sram_addr_reg_next <= SRAM_EXT & sram_addr_comb;
 
     -- Combine base SRAM base address with relative address
-    sram_addr_comb <= STD_LOGIC_VECTOR(unsigned(sram_addr_base) + shift_left(unsigned(rel_sram_addr), log2(NPE_COUNT) + 1));
+    sram_addr_comb <= STD_LOGIC_VECTOR(unsigned(sram_addr_base) + shift_left(unsigned(rel_sram_addr), log2(PE_COUNT) + 1));
 
     riscv_data_out_reg_next <= riscv_data_in;
 
@@ -113,7 +113,7 @@ BEGIN
     END PROCESS;
 
     -- Determine relative SRAM address
-    rel_sram_addr(log2(NPE_COUNT) + 1 + 5 - 1 DOWNTO 5) <= (OTHERS => '0');
+    rel_sram_addr(log2(PE_COUNT) + 1 + 5 - 1 DOWNTO 5) <= (OTHERS => '0');
     p_rel_sram_addr : PROCESS (cur_instr_in)
     BEGIN
         IF cur_instr_in(3 DOWNTO 0) = "1100" THEN

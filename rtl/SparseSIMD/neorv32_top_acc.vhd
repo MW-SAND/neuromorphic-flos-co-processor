@@ -267,7 +267,7 @@ ARCHITECTURE neorv32_top_rtl OF neorv32_top_acc IS
   CONSTANT imem_size_c : NATURAL := cond_sel_natural_f(is_power_of_two_f(MEM_INT_IMEM_SIZE), MEM_INT_IMEM_SIZE, 2 ** index_size_f(MEM_INT_IMEM_SIZE));
   CONSTANT dmem_size_c : NATURAL := cond_sel_natural_f(is_power_of_two_f(MEM_INT_DMEM_SIZE), MEM_INT_DMEM_SIZE, 2 ** index_size_f(MEM_INT_DMEM_SIZE));
 
-  CONSTANT NPE_COUNT : NATURAL := to_integer(unsigned(IO_CFS_CONFIG(7 DOWNTO 0)));
+  CONSTANT PE_COUNT : NATURAL := to_integer(unsigned(IO_CFS_CONFIG(7 DOWNTO 0)));
 
   -- reset nets --
   SIGNAL rstn_wdt, rstn_sys, rstn_ext : STD_ULOGIC;
@@ -335,12 +335,12 @@ ARCHITECTURE neorv32_top_rtl OF neorv32_top_acc IS
   SIGNAL msw_irq : STD_ULOGIC_VECTOR(num_cores_c - 1 DOWNTO 0);
 
   -- Custom Signals HW Acc <--> SRAM
-  SIGNAL data_sram_acc : STD_LOGIC_VECTOR(NPE_COUNT * 16 - 1 DOWNTO 0);
-  SIGNAL data_acc_sram : STD_LOGIC_VECTOR(NPE_COUNT * 16 - 1 DOWNTO 0);
+  SIGNAL data_sram_acc : STD_LOGIC_VECTOR(PE_COUNT * 16 - 1 DOWNTO 0);
+  SIGNAL data_acc_sram : STD_LOGIC_VECTOR(PE_COUNT * 16 - 1 DOWNTO 0);
   SIGNAL rw_acc_sram : STD_LOGIC;
   SIGNAL ena_acc_sram : STD_LOGIC;
   SIGNAL addr_acc_sram : STD_LOGIC_VECTOR(24 - 1 DOWNTO 0);
-  SIGNAL npe_ce : STD_LOGIC_VECTOR(NPE_COUNT - 1 DOWNTO 0);
+  SIGNAL pe_ce : STD_LOGIC_VECTOR(PE_COUNT - 1 DOWNTO 0);
 
 BEGIN
 
@@ -842,7 +842,7 @@ BEGIN
         GENERIC MAP(
           DMEM_SIZE => dmem_size_c,
           ACC_DATA_WIDTH => 16,
-          NPE_COUNT => NPE_COUNT
+          PE_COUNT => PE_COUNT
         )
         PORT MAP(
           clk_i => clk_i,
@@ -851,7 +851,7 @@ BEGIN
           bus_rsp_o => dmem_rsp,
           acc_data_in => data_acc_sram,
           acc_ena => ena_acc_sram,
-          acc_npe_ena => npe_ce,
+          acc_pe_ena => pe_ce,
           acc_rw => rw_acc_sram,
           acc_addr => addr_acc_sram,
           acc_data_out => data_sram_acc
@@ -1046,7 +1046,7 @@ BEGIN
           NUM_REGS_16b => 8,
           NUM_REGS_4b => 8,
           DATA_WIDTH => 16,
-          NPE_COUNT => NPE_COUNT
+          PE_COUNT => PE_COUNT
         )
         PORT MAP(
           clk_i => clk_i,
@@ -1059,7 +1059,7 @@ BEGIN
           sram_rw => rw_acc_sram,
           sram_ena => ena_acc_sram,
           sram_addr => addr_acc_sram,
-          npe_ce => npe_ce
+          pe_ce => pe_ce
         );
     END GENERATE;
 
@@ -1073,7 +1073,7 @@ BEGIN
       ena_acc_sram <= '0';
       rw_acc_sram <= '0';
       data_acc_sram <= (OTHERS => '0');
-      npe_ce <= (OTHERS => '0');
+      pe_ce <= (OTHERS => '0');
     END GENERATE;
     -- Serial Data Interface (SDI) ------------------------------------------------------------
     -- -------------------------------------------------------------------------------------------

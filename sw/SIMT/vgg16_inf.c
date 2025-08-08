@@ -7,7 +7,7 @@
 #include "acc_program.h"
 #include "data_pointers.h"
 
-#define NPE_COUNT 8
+#define PE_COUNT 8
 #define SYNTHESIS false
 
 #define LAYER_IS_FC false
@@ -264,18 +264,18 @@ void configureUART()
     // setup UART at default baud rate, no interrupts
     neorv32_uart0_setup(19200, 0);
     neorv32_uart0_printf("%u HPM counters detected, each %u bits wide\n", hpm_num, hpm_width);
-    neorv32_uart0_printf("Starting inference: VGG16 - %d NPEs\n", NPE_COUNT);
+    neorv32_uart0_printf("Starting inference: VGG16 - %d PEs\n", PE_COUNT);
 
     return;
 }
 
-void FCLayerNPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_t weight_addr_rlc, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t num_neurons)
+void FCLayerPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_t weight_addr_rlc, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t num_neurons)
 {
     uint16_t *event_addr = (uint16_t *)event_start_addr;
 
     // Disable all interrupts and write ps address
     NEORV32_CFS->REG[2] = (uint32_t)0x00000000;
-    NEORV32_CFS->REG[0] = (uint32_t)(output - NPE_COUNT) << BA_ADDR_OFFSET | PS_BA_IDX << BA_IDX_OFFSET | BA_OPC;
+    NEORV32_CFS->REG[0] = (uint32_t)(output - PE_COUNT) << BA_ADDR_OFFSET | PS_BA_IDX << BA_IDX_OFFSET | BA_OPC;
 
     int16_t task_buffer_capacity = TASK_BUFFER_SIZE;
 
@@ -288,7 +288,7 @@ void FCLayerNPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_t 
         uint16_t input_addr = event >> 4;
 
         // Calculate the weight address based on input address
-        uint16_t *weights_start_addr = ((uint16_t *)weight_addr_index) + (input_addr * NPE_COUNT);
+        uint16_t *weights_start_addr = ((uint16_t *)weight_addr_index) + (input_addr * PE_COUNT);
 
         // Write input value, weight address and start task to accelerator task buffer
         NEORV32_CFS->REG[0] = (uint32_t)input_val << INPUT_VAL_VAL_OFFSET | INPUT_VAL_REG << INPUT_VAL_REG_OFFSET | INPUT_VAL_OPC;
@@ -322,7 +322,7 @@ void FCLayerNPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_t 
     return;
 }
 
-void CONVLayerNPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_t weight_addr_rlc, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t *input_dim, uint16_t *kernel_dim, uint16_t *output_dim)
+void CONVLayerPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_t weight_addr_rlc, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t *input_dim, uint16_t *kernel_dim, uint16_t *output_dim)
 {
     uint32_t *event_addr = (uint32_t *)event_start_addr;
 
@@ -345,7 +345,7 @@ void CONVLayerNPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_
         uint16_t depth = input_addr % input_dim[2];
 
         // Calculate the weight address offset based on the input depth and kernel dimensions
-        uint16_t *weights_start_addr = ((uint16_t *)weight_addr_index) + (depth * NPE_COUNT * kernel_dim[0]);
+        uint16_t *weights_start_addr = ((uint16_t *)weight_addr_index) + (depth * PE_COUNT * kernel_dim[0]);
 
         // Use a padding of 2 for the column
         int32_t output_addr = row * (output_dim[1] + 2) * output_dim[2] + column * output_dim[2];
@@ -359,7 +359,7 @@ void CONVLayerNPE(uint32_t event_start_addr, int16_t *weight_addr_index, uint32_
         // Write input value, weight address, peratial sum address and start task to the accelerator
         NEORV32_CFS->REG[0] = (uint32_t)input_val << INPUT_VAL_VAL_OFFSET | INPUT_VAL_REG << INPUT_VAL_REG_OFFSET | INPUT_VAL_OPC;
         NEORV32_CFS->REG[0] = (uint32_t)weights_start_addr << BA_ADDR_OFFSET | WEIGHTS_BA_IDX << BA_IDX_OFFSET | BA_OPC;
-        NEORV32_CFS->REG[0] = (uint32_t)(output + output_addr - NPE_COUNT) << BA_ADDR_OFFSET | PS_BA_IDX << BA_IDX_OFFSET | BA_OPC;
+        NEORV32_CFS->REG[0] = (uint32_t)(output + output_addr - PE_COUNT) << BA_ADDR_OFFSET | PS_BA_IDX << BA_IDX_OFFSET | BA_OPC;
         NEORV32_CFS->REG[0] = (uint32_t)0x0 << TASK_OFFSET | TASK_START_OPC;
 
         task_buffer_capacity -= 4;
@@ -738,7 +738,7 @@ int main(int argc, char *argv[])
     if (!SYNTHESIS)
         configureUART();
 
-    if (NPE_COUNT > 0)
+    if (PE_COUNT > 0)
         configureCFS();
 
     // Enable HPM
@@ -748,15 +748,15 @@ int main(int argc, char *argv[])
     // Process the inputs
     if (LAYER_IS_FC)
     {
-        if (NPE_COUNT > 0)
-            FCLayerNPE(event_start_addr, weight_addr_index, weight_addr_rlc, bias_addr, has_bias, output_addr, num_inputs, num_neurons);
+        if (PE_COUNT > 0)
+            FCLayerPE(event_start_addr, weight_addr_index, weight_addr_rlc, bias_addr, has_bias, output_addr, num_inputs, num_neurons);
         else
             FCLayerRISCV(event_start_addr, weight_addr_index, weight_addr_rlc, bias_addr, has_bias, output_addr, num_inputs, num_neurons);
     }
     else
     {
-        if (NPE_COUNT > 0)
-            CONVLayerNPE(event_start_addr, weight_addr_index, weight_addr_rlc, bias_addr, has_bias, output_addr, num_inputs, input_dim, kernel_dim, output_dim);
+        if (PE_COUNT > 0)
+            CONVLayerPE(event_start_addr, weight_addr_index, weight_addr_rlc, bias_addr, has_bias, output_addr, num_inputs, input_dim, kernel_dim, output_dim);
         else
             CONVLayerRISCV(event_start_addr, weight_addr_index, weight_addr_rlc, bias_addr, has_bias, output_addr, num_inputs, input_dim, kernel_dim, output_dim);
     }

@@ -7,7 +7,7 @@
 #include "acc_program.h"
 #include "data_pointers.h"
 
-#define NPE_COUNT 8
+#define PE_COUNT 8
 #define SYNTHESIS false
 
 #define LAYER_IS_FC false
@@ -265,12 +265,12 @@ void configureUART()
     // setup UART at default baud rate, no interrupts
     neorv32_uart0_setup(19200, 0);
     neorv32_uart0_printf("%u HPM counters detected, each %u bits wide\n", hpm_num, hpm_width);
-    neorv32_uart0_printf("Starting inference: VGG16 - %d NPEs\n", NPE_COUNT);
+    neorv32_uart0_printf("Starting inference: VGG16 - %d PEs\n", PE_COUNT);
 
     return;
 }
 
-void FCLayerNPE(uint32_t event_start_addr, uint32_t weight_addr_offset, int16_t *bitmap, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t num_neurons)
+void FCLayerPE(uint32_t event_start_addr, uint32_t weight_addr_offset, int16_t *bitmap, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t num_neurons)
 {
     uint8_t weight_size = 4;
     uint8_t weights_per_word = 16 / weight_size;
@@ -328,7 +328,7 @@ void FCLayerNPE(uint32_t event_start_addr, uint32_t weight_addr_offset, int16_t 
     return;
 }
 
-void CONVLayerNPE(uint32_t event_start_addr, uint32_t weight_addr_offset, int16_t *bitmap, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t *input_dim, uint16_t *kernel_dim, uint16_t *output_dim)
+void CONVLayerPE(uint32_t event_start_addr, uint32_t weight_addr_offset, int16_t *bitmap, int16_t *bias, bool has_bias, int16_t *output, uint32_t num_inputs, uint16_t *input_dim, uint16_t *kernel_dim, uint16_t *output_dim)
 {
     uint8_t weight_size = 4;
     uint8_t weights_per_word = 16 / weight_size;
@@ -790,7 +790,7 @@ int main(int argc, char *argv[])
     configureUART();
 #endif
 
-    if (NPE_COUNT > 0)
+    if (PE_COUNT > 0)
         configureCFS();
 
 // Enable HPM
@@ -801,15 +801,15 @@ int main(int argc, char *argv[])
     // Process the inputs
     if (LAYER_IS_FC)
     {
-        if (NPE_COUNT > 0)
-            FCLayerNPE(event_start_addr, weight_addr_offset, bitmap_addr, bias_addr, has_bias, output_addr, num_inputs, num_neurons);
+        if (PE_COUNT > 0)
+            FCLayerPE(event_start_addr, weight_addr_offset, bitmap_addr, bias_addr, has_bias, output_addr, num_inputs, num_neurons);
         else
             FCLayerRISCV(event_start_addr, weight_addr_offset, bias_addr, has_bias, output_addr, num_inputs, num_neurons);
     }
     else
     {
-        if (NPE_COUNT > 0)
-            CONVLayerNPE(event_start_addr, weight_addr_offset, bitmap_addr, bias_addr, has_bias, output_addr, num_inputs, input_dim, kernel_dim, output_dim);
+        if (PE_COUNT > 0)
+            CONVLayerPE(event_start_addr, weight_addr_offset, bitmap_addr, bias_addr, has_bias, output_addr, num_inputs, input_dim, kernel_dim, output_dim);
         else
             CONVLayerRISCV(event_start_addr, weight_addr_offset, bias_addr, has_bias, output_addr, num_inputs, input_dim, kernel_dim, output_dim);
     }

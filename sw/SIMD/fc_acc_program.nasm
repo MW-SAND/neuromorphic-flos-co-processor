@@ -1,7 +1,7 @@
 # Base Address Increments
-# partial sum address increment = 8 NPE * 2 ADDR_BYTE_OFFSET * 4 WEIGHTS = 64
+# partial sum address increment = 8 PE * 2 ADDR_BYTE_OFFSET * 4 WEIGHTS = 64
 BAIT0L0A0 64
-# Weight address increment = 8 NPE * 2 ADDR_BYTE_OFFSET = 16
+# Weight address increment = 8 PE * 2 ADDR_BYTE_OFFSET = 16
 BAIT0L0A1 16
 BAIT0L1A0 0
 BAIT0L1A1 0
@@ -10,9 +10,9 @@ BAIT0L2A1 0
 BAIT0L3A0 0
 BAIT0L3A1 0
 
-# partial sum address increment = 8 NPE * 2 ADDR_BYTE_OFFSET = 16
+# partial sum address increment = 8 PE * 2 ADDR_BYTE_OFFSET = 16
 BAIT1L0A0 16
-# bias  address increment = 8 NPE * 2 ADDR_BYTE_OFFSET = 16
+# bias  address increment = 8 PE * 2 ADDR_BYTE_OFFSET = 16
 BAIT1L0A1 16
 BAIT1L1A0 0
 BAIT1L1A1 0
@@ -22,9 +22,9 @@ BAIT1L3A0 0
 BAIT1L3A1 0
 
 # Loop Conditions
-# 512 neurons / (4 WEIGHTS * 8 NPES) = 16
+# 512 neurons / (4 WEIGHTS * 8 PES) = 16
 LCL0T0 15     
-# 512 neurons / 8 NPEs = 64
+# 512 neurons / 8 PEs = 64
 LCL0T1 63      
 LCL1T0 0
 LCL1T1 0

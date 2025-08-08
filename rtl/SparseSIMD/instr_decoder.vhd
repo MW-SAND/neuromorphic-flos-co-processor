@@ -7,7 +7,7 @@ ENTITY instr_decoder IS
         NUM_REGS_16b : INTEGER := 8;
         NUM_REGS_4b : INTEGER := 8;
         DATA_WIDTH : INTEGER := 16;
-        NPE_COUNT : INTEGER := 4;
+        PE_COUNT : INTEGER := 4;
         BASE_ADDR_WIDTH : INTEGER := 20
     );
     PORT (
@@ -29,7 +29,7 @@ ENTITY instr_decoder IS
         arith_sel : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
         rd_in_sel : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
         ce : OUT STD_LOGIC;
-        npe_ce_ena_out : OUT STD_LOGIC;
+        pe_ce_ena_out : OUT STD_LOGIC;
         sram_addr : OUT STD_LOGIC_VECTOR(24 - 1 DOWNTO 0);
         sram_ena : OUT STD_LOGIC;
         sram_rw : OUT STD_LOGIC;
@@ -42,13 +42,13 @@ ARCHITECTURE rtl OF instr_decoder IS
     SIGNAL state : state_t;
     SIGNAL state_next : state_t;
 
-    SIGNAL rel_sram_addr : STD_LOGIC_VECTOR(log2(NPE_COUNT) + 1 + 5 - 1 DOWNTO 0);
+    SIGNAL rel_sram_addr : STD_LOGIC_VECTOR(log2(PE_COUNT) + 1 + 5 - 1 DOWNTO 0);
     SIGNAL sram_addr_base : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH - 1 DOWNTO 0);
 
     SIGNAL sram_addr_comb : STD_LOGIC_VECTOR(BASE_ADDR_WIDTH - 1 DOWNTO 0);
 
-    SIGNAL npe_ce_ena : STD_LOGIC;
-    SIGNAL npe_ce_ena_next : STD_LOGIC;
+    SIGNAL pe_ce_ena : STD_LOGIC;
+    SIGNAL pe_ce_ena_next : STD_LOGIC;
 
     CONSTANT SRAM_EXT : STD_LOGIC_VECTOR(24 - BASE_ADDR_WIDTH - 1 DOWNTO 0) := (OTHERS => '0');
 
@@ -59,7 +59,7 @@ ARCHITECTURE rtl OF instr_decoder IS
     SIGNAL arith_sel_reg_next : STD_LOGIC_VECTOR(3 DOWNTO 0);
     SIGNAL rd_in_sel_reg_next : STD_LOGIC_VECTOR(1 DOWNTO 0);
     SIGNAL ce_reg_next : STD_LOGIC;
-    SIGNAL npe_ce_ena_reg_next : STD_LOGIC;
+    SIGNAL pe_ce_ena_reg_next : STD_LOGIC;
     SIGNAL sram_addr_reg_next : STD_LOGIC_VECTOR(24 - 1 DOWNTO 0);
     SIGNAL sram_ena_reg_next : STD_LOGIC;
     SIGNAL sram_rw_reg_next : STD_LOGIC;
@@ -68,27 +68,27 @@ BEGIN
     sram_addr_reg_next <= SRAM_EXT & sram_addr_comb;
 
     -- Combine base SRAM base address with relative address
-    sram_addr_comb <= STD_LOGIC_VECTOR(unsigned(sram_addr_base) + shift_left(unsigned(rel_sram_addr), log2(NPE_COUNT) + 1));
+    sram_addr_comb <= STD_LOGIC_VECTOR(unsigned(sram_addr_base) + shift_left(unsigned(rel_sram_addr), log2(PE_COUNT) + 1));
 
     riscv_data_out_reg_next <= riscv_data_in;
 
-    p_npe_ce_ena_out : PROCESS (npe_ce_ena, cur_instr_in)
+    p_pe_ce_ena_out : PROCESS (pe_ce_ena, cur_instr_in)
     BEGIN
         -- always enable read and arithmetic with/to REG7
-        IF (npe_ce_ena = '0' OR ((cur_instr_in(3 DOWNTO 0) = "0100" OR cur_instr_in(0) = '1') AND cur_instr_in(7 DOWNTO 4) = "0111")) THEN
-            npe_ce_ena_reg_next <= '0';
+        IF (pe_ce_ena = '0' OR ((cur_instr_in(3 DOWNTO 0) = "0100" OR cur_instr_in(0) = '1') AND cur_instr_in(7 DOWNTO 4) = "0111")) THEN
+            pe_ce_ena_reg_next <= '0';
         ELSE
-            npe_ce_ena_reg_next <= '1';
+            pe_ce_ena_reg_next <= '1';
         END IF;
     END PROCESS;
 
     -- Conditional disablement of PEs
-    p_npe_ce_ena : PROCESS (npe_ce_ena, decode_ena, cur_instr_in)
+    p_pe_ce_ena : PROCESS (pe_ce_ena, decode_ena, cur_instr_in)
     BEGIN
-        npe_ce_ena_next <= npe_ce_ena;
+        pe_ce_ena_next <= pe_ce_ena;
 
         IF (decode_ena = '1' AND cur_instr_in(4 DOWNTO 0) = "10000") THEN
-            npe_ce_ena_next <= cur_instr_in(5);
+            pe_ce_ena_next <= cur_instr_in(5);
         END IF;
     END PROCESS;
 
@@ -145,7 +145,7 @@ BEGIN
     END PROCESS;
 
     -- Determine relative SRAM address
-    rel_sram_addr(log2(NPE_COUNT) + 1 + 5 - 1 DOWNTO 5) <= (OTHERS => '0');
+    rel_sram_addr(log2(PE_COUNT) + 1 + 5 - 1 DOWNTO 5) <= (OTHERS => '0');
     p_rel_sram_addr : PROCESS (cur_instr_in)
     BEGIN
         IF cur_instr_in(3 DOWNTO 0) = "1100" THEN
@@ -251,8 +251,8 @@ BEGIN
     BEGIN
         IF rstn_i = '0' THEN
             state <= single_cycle_instr;
-            npe_ce_ena <= '0';
-            npe_ce_ena_out <= '0';
+            pe_ce_ena <= '0';
+            pe_ce_ena_out <= '0';
             riscv_data_out <= (OTHERS => '0');
             rs1_addr <= (OTHERS => '0');
             rs2_addr <= (OTHERS => '0');
@@ -265,8 +265,8 @@ BEGIN
             sram_rw <= '0';
         ELSIF rising_edge(clk_i) THEN
             state <= state_next;
-            npe_ce_ena <= npe_ce_ena_next;
-            npe_ce_ena_out <= npe_ce_ena_reg_next;
+            pe_ce_ena <= pe_ce_ena_next;
+            pe_ce_ena_out <= pe_ce_ena_reg_next;
             riscv_data_out <= riscv_data_out_reg_next;
             rs1_addr <= rs1_addr_reg_next;
             rs2_addr <= rs2_addr_reg_next;
